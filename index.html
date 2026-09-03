@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سنتر التفوق - لوحة التحكم</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<!-- Barcode & QR -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --border:#e2e8f0;
+    --border-soft:#eef1f6;
+    --indigo:#4f46e5;
+    --indigo-dark:#4338ca;
+    --indigo-bg:#eef2ff;
+    --purple:#7c3aed;
+    --emerald:#10b981;
+    --emerald-dark:#059669;
+    --emerald-bg:#ecfdf5;
+    --red:#ef4444;
+    --red-bg:#fef2f2;
+    --text:#0f172a;
+    --muted:#64748b;
+    --muted-2:#94a3b8;
+    --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+    --shadow-md:0 4px 10px rgba(15,23,42,.06);
+    --radius-lg:20px;
+    --radius-sm:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;width:100%;}
+  body{
+    background:var(--bg);
+    font-family:'Cairo',sans-serif;
+    color:var(--text);
+    min-height:100vh;
+  }
+  
+  header.topbar{
+    background:linear-gradient(120deg,var(--indigo) 0%,var(--purple) 100%);
+    color:#fff;
+    padding:26px 40px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:14px;
+    width:100%;
+    box-shadow:0 8px 24px rgba(79,70,229,.18);
+  }
+  header.topbar .brand{display:flex;align-items:center;gap:15px;}
+  header.topbar .brand .mark{
+    width:46px;height:46px;border-radius:14px;
+    background:rgba(255,255,255,.16);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:20px;
+  }
+  header.topbar h1{font-size:22px;font-weight:800;margin:0;}
+  header.topbar p{margin:3px 0 0;font-size:13px;color:rgba(255,255,255,.78);font-weight:500;}
+  header.topbar .conn-status{
+    font-size:13px;font-weight:600;padding:8px 16px;border-radius:30px;
+    background:rgba(255,255,255,.14);display:flex;align-items:center;gap:8px;
+  }
+  header.topbar .dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;}
+  header.topbar .dot.on{background:#34d399;}
+  header.topbar .dot.off{background:#fca5a5;}
+
+  main{
+    width:100%;
+    max-width:100%;
+    margin:0;
+    padding:30px 40px 70px;
+  }
+
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+    gap:20px;
+    margin-bottom:28px;
+    width:100%;
+  }
+  .stat-card{
+    background:var(--card);
+    border-radius:var(--radius-lg);
+    padding:24px 30px;
+    border:1px solid var(--border-soft);
+    box-shadow:var(--shadow-sm);
+    display:flex;
+    align-items:center;
+    gap:20px;
+  }
+  .stat-card .icon{
+    width:60px;height:60px;border-radius:16px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:28px;flex-shrink:0;
+  }
+  .stat-card.students .icon{background:var(--indigo-bg);color:var(--indigo);}
+  .stat-card.revenue .icon{background:var(--emerald-bg);color:var(--emerald-dark);}
+  .stat-card .num{font-size:34px;font-weight:800;line-height:1.1;}
+  .stat-card .label{font-size:14px;color:var(--muted);font-weight:600;margin-top:4px;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:440px 1fr;
+    gap:24px;
+    align-items:start;
+    width:100%;
+  }
+  @media (max-width:1100px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--card);
+    border-radius:var(--radius-lg);
+    border:1px solid var(--border-soft);
+    box-shadow:var(--shadow-sm);
+    padding:26px;
+    margin-bottom:24px;
+  }
+  .panel h2{
+    font-size:16.5px;font-weight:800;margin:0 0 6px;
+    display:flex;align-items:center;gap:9px;
+  }
+  .panel h2 .h-icon{
+    width:34px;height:34px;border-radius:10px;
+    background:var(--indigo-bg);color:var(--indigo);
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .panel .sub{font-size:12.5px;color:var(--muted);margin:0 0 20px;line-height:1.6;}
+
+  input,select{
+    font-family:'Cairo',sans-serif;
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    font-size:14px;
+    font-weight:500;
+    width:100%;
+    background:#fbfcfe;
+    color:var(--text);
+  }
+  input:focus,select:focus{outline:none;border-color:var(--indigo);background:#fff;}
+  input[readonly]{background:var(--indigo-bg);color:var(--indigo-dark);font-weight:800;border-style:dashed;}
+  
+  .scan-input-wrap input{font-size:16px;letter-spacing:1.5px;font-weight:700;}
+  #scanAlert{margin-top:14px;padding:14px 16px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:700;display:none;}
+  #scanAlert.show{display:block;}
+  #scanAlert.danger{background:var(--red-bg);color:var(--red);border:1px solid #fecaca;}
+  #scanAlert.success{background:var(--emerald-bg);color:var(--emerald-dark);border:1px solid #a7f3d0;}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:7px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+  .weekday-chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .weekday-chips .chip{
+    display:flex;align-items:center;gap:6px;background:#f1f5f9;
+    border:1.5px solid var(--border);border-radius:30px;padding:8px 14px;
+    font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;
+  }
+  .weekday-chips .chip input{display:none;}
+  .weekday-chips .chip.active{background:linear-gradient(120deg,var(--indigo),var(--purple));border-color:transparent;color:#fff;}
+
+  .btn{
+    font-family:'Cairo',sans-serif;border:none;border-radius:var(--radius-sm);
+    padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .btn-primary{background:linear-gradient(120deg,var(--indigo),var(--purple));color:#fff;}
+  .btn-block{width:100%;margin-top:10px;}
+  .btn-ghost{background:#f1f5f9;color:var(--text);}
+  .btn-sm{padding:7px 10px;font-size:12px;border-radius:8px;}
+  .btn-whatsapp{background:#25D366;color:#fff;}
+  .btn-print{background:var(--text);color:#fff;}
+  .btn-edit{background:var(--indigo-bg);color:var(--indigo-dark);}
+  .btn-delete{background:var(--red-bg);color:var(--red);}
+  .btn-delete:hover{background:#fee2e2;}
+
+  #regMsg{margin-top:14px;font-size:13px;font-weight:700;display:none;padding:12px 14px;border-radius:var(--radius-sm);}
+  #regMsg.show{display:block;}
+  #regMsg.success{background:var(--emerald-bg);color:var(--emerald-dark);}
+  #regMsg.danger{background:var(--red-bg);color:var(--red);}
+
+  .table-panel{
+    background:var(--card);border-radius:var(--radius-lg);
+    border:1px solid var(--border-soft);box-shadow:var(--shadow-sm);padding:26px;
+    width:100%;
+  }
+  .table-panel .head-row{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;
+  }
+  .table-panel .head-row h2{margin:0;font-size:16.5px;font-weight:800;display:flex;align-items:center;gap:9px;}
+  
+  .filters-bar{display:flex;gap:12px;flex-wrap:wrap;}
+  .filters-bar select, .filters-bar input{width:auto;min-width:180px;}
+
+  .table-scroll{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--border-soft);}
+  table{width:100%;border-collapse:collapse;min-width:1150px;font-size:13.5px;}
+  thead th{background:#f8fafc;color:var(--muted);font-weight:800;text-align:right;padding:16px 14px;border-bottom:1px solid var(--border-soft);white-space:nowrap;}
+  tbody td{padding:14px;border-bottom:1px solid var(--border-soft);vertical-align:middle;white-space:nowrap;}
+  tbody tr:hover{background:#f8fafc;}
+  .cell-input{width:65px;padding:6px;font-size:13px;border-radius:8px;}
+  .code-pill{background:var(--indigo-bg);padding:5px 12px;border-radius:8px;font-size:12px;font-weight:800;color:var(--indigo-dark);}
+  .fee-btn{border:none;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer;}
+  .fee-btn.paid{background:var(--emerald-bg);color:var(--emerald-dark);}
+  .fee-btn.unpaid{background:var(--red-bg);color:var(--red);}
+  .row-actions{display:flex;gap:6px;}
+  .empty-row td{text-align:center;color:var(--muted);padding:40px;font-weight:600;}
+  footer{text-align:center;color:var(--muted-2);font-size:12.5px;padding:28px;font-weight:600;width:100%;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;
+    align-items:flex-start;justify-content:center;padding:46px 16px;z-index:999;overflow-y:auto;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{background:#fff;border-radius:22px;width:100%;max-width:500px;padding:30px;position:relative;}
+  .modal-close{position:absolute;top:20px;left:20px;background:#f1f5f9;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">ت</div>
+    <div>
+      <h1>سنتر التفوق التعليمي</h1>
+      <p>لوحة التحكم المركزية - إدارة الطلاب والحضور والمصاريف</p>
+    </div>
+  </div>
+  <div class="conn-status">
+    <span class="dot off" id="connDot"></span>
+    <span id="connText">جاري الاتصال...</span>
+  </div>
+</header>
+
+<main>
+  <section class="stats">
+    <div class="stat-card students">
+      <div class="icon">👥</div>
+      <div>
+        <div class="num" id="statStudents">0</div>
+        <div class="label">إجمالي عدد الطلاب المسجلين</div>
+      </div>
+    </div>
+    <div class="stat-card revenue">
+      <div class="icon">💰</div>
+      <div>
+        <div class="num" id="statRevenue">0</div>
+        <div class="label">إجمالي الإيرادات المحصلة لشهر الحالية (ج.م)</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2><span class="h-icon">📷</span> تسجيل الحضور بالباركود</h2>
+        <p class="sub">امسح الكود أو اكتبه واضغط Enter</p>
+        <div class="scan-input-wrap">
+          <input type="text" id="barcodeInput" placeholder="امسح كود الطالب هنا..." autocomplete="off" autofocus>
+        </div>
+        <div id="scanAlert"></div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="h-icon">➕</span> تسجيل طالب جديد</h2>
+        <p class="sub">أدخل بيانات الطالب مع تحديد الصف الدراسي</p>
+        <form id="regForm">
+          <div class="field-row">
+            <div class="field">
+              <label>كود الطالب</label>
+              <input type="text" id="f_code" required>
+            </div>
+            <div class="field">
+              <label>اسم الطالب</label>
+              <input type="text" id="f_name" required>
+            </div>
+          </div>
+          <div class="field">
+            <label>الصف الدراسي</label>
+            <select id="f_gradeLevel" required>
+              <option value="أول ثانوي">أول ثانوي</option>
+              <option value="ثاني ثانوي">ثاني ثانوي</option>
+              <option value="ثالث ثانوي">ثالث ثانوي</option>
+            </select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>هاتف الطالب</label>
+              <input type="tel" id="f_studentPhone" placeholder="010xxxxxxxx">
+            </div>
+            <div class="field">
+              <label>هاتف ولي الأمر</label>
+              <input type="tel" id="f_guardianPhone" placeholder="010xxxxxxxx">
+            </div>
+          </div>
+          <div class="field">
+            <label>مصاريف الشهر (ج.م)</label>
+            <input type="number" id="f_fees" min="0" required>
+          </div>
+          <div class="field">
+            <label>أيام الحصص الأسبوعية</label>
+            <div class="weekday-chips" id="f_scheduleDays">
+              <label class="chip"><input type="checkbox" value="0"> الأحد</label>
+              <label class="chip"><input type="checkbox" value="1"> الاثنين</label>
+              <label class="chip"><input type="checkbox" value="2"> الثلاثاء</label>
+              <label class="chip"><input type="checkbox" value="3"> الأربعاء</label>
+              <label class="chip"><input type="checkbox" value="4"> الخميس</label>
+              <label class="chip"><input type="checkbox" value="5"> الجمعة</label>
+              <label class="chip"><input type="checkbox" value="6"> السبت</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>إجمالي حصص الشهر</label>
+            <input type="number" id="f_totalSessions" readonly value="0">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">حفظ الطالب</button>
+          <div id="regMsg"></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="table-panel">
+      <div class="head-row">
+        <h2><span class="h-icon" style="background:var(--emerald-bg);color:var(--emerald-dark);">📋</span> قائمة الطلاب</h2>
+        <div class="filters-bar">
+          <select id="filterGradeLevel">
+            <option value="all">جميع الصفوف الدراسية</option>
+            <option value="أول ثانوي">أول ثانوي</option>
+            <option value="ثاني ثانوي">ثاني ثانوي</option>
+            <option value="ثالث ثانوي">ثالث ثانوي</option>
+          </select>
+          <input type="text" id="searchBox" placeholder="بحث بالاسم أو الكود...">
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>الكود</th>
+              <th>الاسم</th>
+              <th>الصف الدراسي</th>
+              <th>الهاتف</th>
+              <th>الحصص</th>
+              <th>الامتحان</th>
+              <th>المصاريف</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTbody">
+            <tr class="empty-row"><td colspan="8">جاري تحميل البيانات...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>نظام سنتر التفوق التعليمي — مدعوم بقاعدة بيانات Firebase لحظياً</footer>
+
+<div class="modal-overlay" id="editModalOverlay">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="editModalClose">✕</button>
+    <h3>تعديل بيانات الطالب</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:15px;">كود الطالب: <span id="editCodeLabel" style="font-weight:800;color:var(--indigo);"></span></p>
+    <form id="editForm">
+      <div class="field">
+        <label>اسم الطالب</label>
+        <input type="text" id="e_name" required>
+      </div>
+      <div class="field">
+        <label>الصف الدراسي</label>
+        <select id="e_gradeLevel" required>
+          <option value="أول ثانوي">أول ثانوي</option>
+          <option value="ثاني ثانوي">ثاني ثانوي</option>
+          <option value="ثالث ثانوي">ثالث ثانوي</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>هاتف الطالب</label>
+          <input type="tel" id="e_studentPhone">
+        </div>
+        <div class="field">
+          <label>هاتف ولي الأمر</label>
+          <input type="tel" id="e_guardianPhone">
+        </div>
+      </div>
+      <div class="field">
+        <label>المصاريف (ج.م)</label>
+        <input type="number" id="e_fees" required>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="button" class="btn btn-ghost" style="flex:1;" id="editCancelBtn">إلغاء</button>
+        <button type="submit" class="btn btn-primary" style="flex:1;">حفظ التغييرات</button>
+      </div>
+      <div id="editMsg" style="margin-top:10px;font-size:12px;font-weight:700;"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD6UDuCBns0_zdWOhnLOX3OtKelHs3hGmc",
+  authDomain: "altafawuk-center.firebaseapp.com",
+  databaseURL: "https://altafawuk-center-default-rtdb.firebaseio.com",
+  projectId: "altafawuk-center",
+  storageBucket: "altafawuk-center.firebasestorage.app",
+  messagingSenderId: "499180495752",
+  appId: "1:499180495752:web:6f2e72fb4e87f8becc103d"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+db.ref('.info/connected').on('value', (snap) => {
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  if (snap.val() === true) {
+    dot.className = 'dot on';
+    text.textContent = 'متصل بقاعدة البيانات';
+  } else {
+    dot.className = 'dot off';
+    text.textContent = 'غير متصل';
+  }
+});
+
+const ARABIC_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function countWeekdayOccurrencesInMonth(weekday, year, month) {
+  const date = new Date(year, month, 1);
+  let count = 0;
+  while (date.getMonth() === month) {
+    if (date.getDay() === weekday) count++;
+    date.setDate(date.getDate() + 1);
+  }
+  return count;
+}
+function computeMonthlySessions(selectedDays) {
+  const now = new Date();
+  let total = 0;
+  selectedDays.forEach(d => {
+    total += countWeekdayOccurrencesInMonth(Number(d), now.getFullYear(), now.getMonth());
+  });
+  return total;
+}
+function getSelectedDays(containerEl) {
+  return Array.from(containerEl.querySelectorAll('input[type=checkbox]:checked')).map(cb => Number(cb.value));
+}
+function wireScheduleChips(containerEl, totalInputEl) {
+  containerEl.querySelectorAll('.chip').forEach(chip => {
+    const checkbox = chip.querySelector('input[type=checkbox]');
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      checkbox.checked = !checkbox.checked;
+      chip.classList.toggle('active', checkbox.checked);
+      totalInputEl.value = computeMonthlySessions(getSelectedDays(containerEl));
+    });
+  });
+}
+
+const f_scheduleDays = document.getElementById('f_scheduleDays');
+const f_totalSessions = document.getElementById('f_totalSessions');
+wireScheduleChips(f_scheduleDays, f_totalSessions);
+
+const regForm = document.getElementById('regForm');
+const regMsg = document.getElementById('regMsg');
+regForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const code = document.getElementById('f_code').value.trim();
+  const name = document.getElementById('f_name').value.trim();
+  const gradeLevel = document.getElementById('f_gradeLevel').value;
+  const studentPhone = document.getElementById('f_studentPhone').value.trim();
+  const guardianPhone = document.getElementById('f_guardianPhone').value.trim();
+  const fees = Number(document.getElementById('f_fees').value);
+  const scheduleDays = getSelectedDays(f_scheduleDays);
+  const totalSessions = computeMonthlySessions(scheduleDays);
+
+  if(!code || !name || !fees) return;
+
+  db.ref('students/' + code).once('value').then(snap => {
+    if(snap.exists()) {
+      regMsg.className = 'show danger';
+      regMsg.textContent = 'هذا الكود مسجل مسبقاً!';
+      return;
+    }
+    db.ref('students/' + code).set({
+      code, name, gradeLevel, studentPhone, guardianPhone, fees,
+      feesPaid: false, scheduleDays, totalSessions, attendedSessions: 0, examGrade: 0, attendanceDates: {}
+    }).then(() => {
+      regMsg.className = 'show success';
+      regMsg.textContent = 'تم تسجيل الطالب بنجاح!';
+      regForm.reset();
+      f_scheduleDays.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      f_totalSessions.value = 0;
+    });
+  });
+});
+
+const barcodeInput = document.getElementById('barcodeInput');
+const scanAlert = document.getElementById('scanAlert');
+barcodeInput.addEventListener('keypress', (e) => {
+  if(e.key === 'Enter') {
+    e.preventDefault();
+    const code = barcodeInput.value.trim();
+    barcodeInput.value = '';
+    if(!code) return;
+    
+    db.ref('students/' + code).once('value').then(snap => {
+      if(!snap.exists()) {
+        scanAlert.className = 'show danger';
+        scanAlert.textContent = '⚠️ الكود غير مسجل: ' + code;
+        return;
+      }
+      const student = snap.val();
+      const today = todayStr();
+      const dates = student.attendanceDates ? Object.values(student.attendanceDates) : [];
+      if(dates.includes(today)) {
+        scanAlert.className = 'show danger';
+        scanAlert.textContent = `✋ تم تسجيل حضور الطالب "${student.name}" مسبقاً اليوم.`;
+        return;
+      }
+      const newAttended = (Number(student.attendedSessions) || 0) + 1;
+      db.ref(`students/${code}/attendanceDates`).push(today)
+        .then(() => db.ref('students/' + code).update({ attendedSessions: newAttended }))
+        .then(() => {
+          scanAlert.className = 'show success';
+          scanAlert.textContent = `✔ تم تسجيل حضور: ${student.name} (الحصة ${newAttended} من ${student.totalSessions})`;
+        });
+    });
+  }
+});
+
+let allStudents = {};
+const tbody = document.getElementById('studentsTbody');
+const statStudents = document.getElementById('statStudents');
+const statRevenue = document.getElementById('statRevenue');
+const searchBox = document.getElementById('searchBox');
+const filterGradeLevel = document.getElementById('filterGradeLevel');
+
+db.ref('students').on('value', snap => {
+  allStudents = snap.val() || {};
+  renderStats();
+  renderTable();
+});
+
+function renderStats() {
+  const codes = Object.keys(allStudents);
+  statStudents.textContent = codes.length;
+  let revenue = 0;
+  codes.forEach(c => {
+    if(allStudents[c].feesPaid) revenue += Number(allStudents[c].fees) || 0;
+  });
+  statRevenue.textContent = revenue.toLocaleString('ar-EG');
+}
+
+function renderTable() {
+  const filter = (searchBox.value || '').trim().toLowerCase();
+  const gradeFilter = filterGradeLevel.value;
+  const codes = Object.keys(allStudents);
+
+  const filtered = codes.filter(code => {
+    const s = allStudents[code];
+    const matchSearch = !filter || s.name.toLowerCase().includes(filter) || code.toLowerCase().includes(filter);
+    const matchGrade = gradeFilter === 'all' || s.gradeLevel === gradeFilter;
+    return matchSearch && matchGrade;
+  });
+
+  if(filtered.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">لا توجد بيانات مطابقة</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(code => {
+    const s = allStudents[code];
+    return `
+      <tr data-code="${code}">
+        <td><span class="code-pill">${code}</span></td>
+        <td style="font-weight:800;">${s.name}</td>
+        <td><span style="background:var(--indigo-bg);color:var(--indigo-dark);padding:4px 8px;border-radius:6px;font-size:12px;font-weight:700;">${s.gradeLevel || 'غير محدد'}</span></td>
+        <td>${s.studentPhone || '—'}</td>
+        <td>
+          <input type="number" class="cell-input attended-input" value="${s.attendedSessions || 0}" min="0">
+          <span style="font-size:12px;color:var(--muted);">/ ${s.totalSessions || 0}</span>
+        </td>
+        <td><input type="number" class="cell-input grade-input" value="${s.examGrade || 0}" min="0" max="100"></td>
+        <td>
+          <button class="fee-btn ${s.feesPaid ? 'paid' : 'unpaid'} fee-toggle-btn">${s.feesPaid ? 'تم السداد ✓' : 'لم يسدد'}</button>
+          <span style="font-size:11px;display:block;margin-top:3px;color:var(--muted);">${s.fees || 0} ج.م</span>
+        </td>
+        <td>
+          <div class="row-actions">
+            <button class="btn btn-sm btn-whatsapp wa-btn" title="واتساب">واتساب</button>
+            <button class="btn btn-sm btn-print print-btn" title="كارنيه">كارنيه</button>
+            <button class="btn btn-sm btn-edit edit-btn" title="تعديل">تعديل</button>
+            <button class="btn btn-sm btn-delete delete-btn" title="حذف الطالب">حذف</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  filtered.forEach(code => attachRowListeners(code));
+}
+
+function attachRowListeners(code) {
+  const row = tbody.querySelector(`tr[data-code="${code}"]`);
+  if(!row) return;
+
+  row.querySelector('.attended-input').addEventListener('change', (e) => {
+    db.ref('students/' + code).update({ attendedSessions: Number(e.target.value) || 0 });
+  });
+  row.querySelector('.grade-input').addEventListener('change', (e) => {
+    db.ref('students/' + code).update({ examGrade: Number(e.target.value) || 0 });
+  });
+  row.querySelector('.fee-toggle-btn').addEventListener('click', () => {
+    db.ref('students/' + code).update({ feesPaid: !allStudents[code].feesPaid });
+  });
+  row.querySelector('.wa-btn').addEventListener('click', () => {
+    const s = allStudents[code];
+    const phone = (s.guardianPhone || s.studentPhone || '').replace(/[^0-9]/g, '');
+    if(!phone) { alert('لا يوجد رقم هاتف مسجل.'); return; }
+    const msg = `تقرير الطالب: ${s.name}\nالصف: ${s.gradeLevel}\nالحصص: ${s.attendedSessions || 0} من ${s.totalSessions}\nالدرجة: ${s.examGrade || 0}\nالمصاريف: ${s.feesPaid ? 'تم السداد' : 'لم يتم السداد'}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  });
+  row.querySelector('.print-btn').addEventListener('click', () => printStudentCard(code));
+  row.querySelector('.edit-btn').addEventListener('click', () => openEditModal(code));
+  
+  row.querySelector('.delete-btn').addEventListener('click', () => {
+    if(confirm(`هل أنت متأكد من حذف الطالب "${allStudents[code].name}" نهائياً من السيستم؟`)) {
+      db.ref('students/' + code).remove().then(() => {
+        alert('تم حذف الطالب بنجاح.');
+      });
+    }
+  });
+}
+
+searchBox.addEventListener('input', renderTable);
+filterGradeLevel.addEventListener('change', renderTable);
+
+const editModalOverlay = document.getElementById('editModalOverlay');
+let currentEditCode = null;
+function openEditModal(code) {
+  const s = allStudents[code];
+  if(!s) return;
+  currentEditCode = code;
+  document.getElementById('editCodeLabel').textContent = code;
+  document.getElementById('e_name').value = s.name || '';
+  document.getElementById('e_gradeLevel').value = s.gradeLevel || 'أول ثانوي';
+  document.getElementById('e_studentPhone').value = s.studentPhone || '';
+  document.getElementById('e_guardianPhone').value = s.guardianPhone || '';
+  document.getElementById('e_fees').value = s.fees || 0;
+  editModalOverlay.classList.add('show');
+}
+function closeEditModal() { editModalOverlay.classList.remove('show'); }
+document.getElementById('editModalClose').addEventListener('click', closeEditModal);
+document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+
+document.getElementById('editForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if(!currentEditCode) return;
+  db.ref('students/' + currentEditCode).update({
+    name: document.getElementById('e_name').value.trim(),
+    gradeLevel: document.getElementById('e_gradeLevel').value,
+    studentPhone: document.getElementById('e_studentPhone').value.trim(),
+    guardianPhone: document.getElementById('e_guardianPhone').value.trim(),
+    fees: Number(document.getElementById('e_fees').value)
+  }).then(() => {
+    alert('تم التعديل بنجاح');
+    closeEditModal();
+  });
+});
+
+function printStudentCard(code) {
+  const s = allStudents[code];
+  if(!s) return;
+  const basePath = location.href.substring(0, location.href.lastIndexOf('/') + 1);
+  const url = basePath + 'student.html?code=' + encodeURIComponent(code);
+  const pw = window.open('', '_blank', 'width=400,height=600');
+  pw.document.write(`
+    <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كارنيه ${s.name}</title>
+    <style>body{font-family:Cairo,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;}
+    .card{width:320px;background:#fff;border:1px solid #cbd5e1;border-radius:20px;padding:20px;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.1);}
+    .top{background:linear-gradient(120deg,#4f46e5,#7c3aed);color:#fff;padding:14px;border-radius:12px;margin-bottom:15px;}
+    .name{font-size:20px;font-weight:bold;margin:10px 0 5px;}
+    .grade{font-size:13px;color:#4f46e5;font-weight:bold;margin-bottom:10px;}
+    </style></head><body>
+    <div class="card">
+      <div class="top"><h3 style="margin:0;">سنتر التفوق التعليمي</h3></div>
+      <div class="name">${s.name}</div>
+      <div class="grade">${s.gradeLevel}</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:10px;">الكود: ${code}</div>
+      <svg id="barcode"></svg>
+      <div id="qrcode" style="display:flex;justify-content:center;margin-top:10px;"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+      window.onload = function() {
+        JsBarcode("#barcode", "${code}", {format:"CODE128", width:1.8, height:50, displayValue:true});
+        new QRCode(document.getElementById("qrcode"), {text: "${url}", width:110, height:110});
+        setTimeout(() => window.print(), 300);
+      }
+    </script></body></html>
+  `);
+  pw.document.close();
+}
+</script>
+</body>
+</html>
